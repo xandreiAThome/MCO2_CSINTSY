@@ -1,0 +1,67 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  color: white;
+  background-color: black;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+body h1 {
+  font-size: 50px;
+}
+
+.pixel {
+  border-top: 1px solid gray;
+  border-left: 1px solid gray;
+  -webkit-user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background-color: rgb(255, 255, 255);
+}
+
+.map-container {
+  display: grid;
+  width: 900px;
+  height: 900px;
+  border-right: 1px solid gray;
+  border-bottom: 1px solid gray;
+  display: grid;
+  background-color: white;
+}
+
+.robot {
+  background-image: url("assets/robot.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.breeze {
+  background-image: url("assets/breeze.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.gold {
+  background-image: url("assets/gold.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.pit {
+  background-image: url("assets/pit.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
