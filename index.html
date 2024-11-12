@@ -4,12 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wumpus</title>
-    <script src="app.js" defer></script>
+    <script src="tau-prolog.js"></script>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div><h1>Wumpus</h1></div>
-    <div class="map-container"></div>
-    <h1>World</h1>
+    <main>
+      <div><h1>Wumpus</h1></div>
+      <div class="map-container"></div>
+      <h1>World</h1>
+      <div>
+        <h1>Tau Prolog in the Browser</h1>
+        <button onclick="query()">Run Prolog</button>
+        <button onclick="add()">Add Fact</button>
+        <pre id="output"></pre>
+      </div>
+    </main>
+    <script src="app.js" defer></script>
   </body>
 </html>

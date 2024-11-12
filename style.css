@@ -7,9 +7,13 @@ body {
 body {
   color: white;
   background-color: black;
+}
+
+main {
   display: flex;
   justify-content: space-evenly;
   align-items: center;
+  height: 100%;
 }
 
 body h1 {
@@ -19,6 +23,8 @@ body h1 {
 .pixel {
   border-top: 1px solid gray;
   border-left: 1px solid gray;
+  width: 76px;
+  height: 76px;
   -webkit-user-drag: none;
   user-select: none;
   -moz-user-select: none;
@@ -30,8 +36,6 @@ body h1 {
 
 .map-container {
   display: grid;
-  width: 900px;
-  height: 900px;
   border-right: 1px solid gray;
   border-bottom: 1px solid gray;
   display: grid;

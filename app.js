@@ -1,4 +1,18 @@
-const GRID = 12;
+const GRID = 4;
+let program = `
+            % Facts
+            parent(john, mary).
+            parent(john, michael).
+            parent(susan, mary).
+            parent(susan, michael).
+            parent(mary, anna).
+            parent(mary, tom).
+            parent(michael, james).
+            parent(michael, linda).
+
+            % Rules
+            grandparent(X, Y) :- parent(X, Z), parent(Z, Y).
+        `;
 
 function makeGrid() {
   const map = document.querySelector(".map-container");
@@ -20,3 +34,35 @@ function makeGrid() {
 }
 
 makeGrid();
+
+function query() {
+  console.log.apply(program);
+  let session = pl.create();
+  session.consult(program);
+  session.query("parent(X, Y).");
+  function inform(msg) {
+    let outputElement = document.getElementById("output");
+    outputElement.textContent += msg + "\n";
+  }
+
+  var callback = function (answer) {
+    if (answer === false) {
+      inform("DONE");
+      return;
+    }
+    if (answer === null) {
+      inform("TIMEOUT");
+      return;
+    }
+    inform(pl.format_answer(answer));
+    session.answer(callback);
+  };
+  // start the query loop
+  session.answer(callback);
+}
+
+function add() {
+  if (!program.includes("parent(pop, ap).")) {
+    program += "parent(pop, ap).";
+  }
+}
