@@ -1,14 +1,7 @@
 const GRID = 4;
 let program = `
             % Facts
-            parent(john, mary).
-            parent(john, michael).
-            parent(susan, mary).
-            parent(susan, michael).
-            parent(mary, anna).
-            parent(mary, tom).
-            parent(michael, james).
-            parent(michael, linda).
+            :- dynamic(parent/2)
 
             % Rules
             grandparent(X, Y) :- parent(X, Z), parent(Z, Y).
@@ -36,7 +29,6 @@ function makeGrid() {
 makeGrid();
 
 function query() {
-  console.log.apply(program);
   let session = pl.create();
   session.consult(program);
   session.query("parent(X, Y).");
@@ -59,10 +51,4 @@ function query() {
   };
   // start the query loop
   session.answer(callback);
-}
-
-function add() {
-  if (!program.includes("parent(pop, ap).")) {
-    program += "parent(pop, ap).";
-  }
 }
