@@ -1,0 +1,132 @@
+% last updated: November 13, 2024
+% implementation for 'Adventure World'
+% to run:
+% ?- consult('Adventure.txt').
+% ?- start(0,4).
+
+% discoveries
+:- dynamic breeze/2, glitter/2, safe/2, home/2.
+
+% TODO:
+% action for grabbing when there is a gold coin
+% action for leaving when on home space
+% prevent player from stepping out of bounds
+% indicate player position
+
+% resets all dynamics
+reset :-
+	retractall(breeze(_, _)),
+	retractall(glitter(_, _)),
+	retractall(safe(_, _)),
+	retractall(home(_, _)).
+
+% 5 by 5 grid
+% 0 is clear
+% 1 is glitter
+% 2 is breeze
+% 3 is pit
+% 4 is glitter and breeze
+grid(	[0,1,2,0,1,
+	1,2,3,2,0,
+	2,3,2,2,0,
+	0,2,2,3,2,
+	0,0,0,4,0]).
+
+% functions for rudimentary display
+% base case
+print(D,D,D) :-
+	(breeze(D,D),glitter(D,D) -> write("~$ ");true),
+	(breeze(D,D),not(glitter(D,D)) -> write("~~ ");true),
+	(not(breeze(D,D)),glitter(D,D) -> write("$$ ");true),
+	(safe(D,D),not(breeze(D,D)),not(glitter(D,D)) -> write("[] ");true),
+	(not(breeze(D,D)),not(glitter(D,D)),not(safe(D,D)) -> write("?? ");true).
+% recursive case
+print(X,Y,D) :-
+	(breeze(X,Y),glitter(X,Y) -> write("~$ ");true),
+	(breeze(X,Y),not(glitter(X,Y)) -> write("~~ ");true),
+	(not(breeze(X,Y)),glitter(X,Y) -> write("$$ ");true),
+	(safe(X,Y),not(breeze(X,Y)),not(glitter(X,Y)) -> write("[] ");true),
+	(not(breeze(X,Y)),not(glitter(X,Y)),not(safe(X,Y)) -> write("?? ");true),
+	(X >= D -> X1 is 0, Y1 is Y+1, nl; X1 is X+1, Y1 = Y),
+	print(X1,Y1,D).
+
+display(D) :-
+	D1 is D-1,
+	print(0,0,D1).
+
+% note: query for getting the element E at index I (zero index)
+% nth0(I, [a,b,c], E, _).
+
+% X, Y are coordinates
+% LIST is the grid to be passed
+% OUT is the output
+% D is the dimension (assumed to be square, usually 5)
+check_grid(X,Y,LIST,OUT,D) :-
+	I is X + D * Y,
+	nth0(I,LIST,OUT, _).
+
+% start the game
+start(X,Y) :-
+	reset,
+	assert(home(X,Y)),
+	land(X,Y),
+	game(1,X,Y).
+
+% recursion that asks user for their move
+game(0,_,_) :- !.
+game(_,X,Y) :-
+	display(5),
+	read(INPUT),
+	writeln(INPUT),
+	(INPUT=:=8 -> Y1 is Y-1, writeln("moved north"); Y1 = Y; true),
+	(INPUT=:=6 -> X1 is X+1, writeln("moved east"); X1 = X; true),
+	(INPUT=:=2 -> Y1 is Y+1, writeln("moved south"); Y1 = Y; true),
+	(INPUT=:=4 -> X1 is X-1, writeln("moved west"); X1 = X; true),
+	%check the grid
+	grid(G),check_grid(X1,Y1,G,E,5),
+	
+	% if E is 3 then game is over, otherwise call move
+	(E=:=3 -> writeln("I feel a .. AAAAAAHHHHHHH! XoX "), N1 is 0; land(X1,Y1), N1 is 1),
+	game(N1,X1,Y1).
+
+% determine if current and adjacent spaces are surely safe or not
+land(X,Y) :- % land to X Y
+	% write position
+	write("position: "),write(X),write(","),write(Y),nl,
+
+	% check the grid
+	grid(G),check_grid(X,Y,G,E,5),
+	% write(E),
+	% if E is 1 or 4 then there is glitter
+	((E=:=1;E=:=4) -> assert(glitter(X,Y)),writeln("I see glitter here");true),
+	% if E is 2 or 4 then there is a breeze
+	((E=:=2;E=:=4) -> assert(breeze(X,Y)),writeln("I feel a breeze here");true),
+
+	% determine safety of current and adjacent
+	% spaces depending on what is known
+	X1 is X + 1, Y1 is Y,
+	is_safe(X,Y,X1,Y1), %maybe_pit(X1,Y1),
+	X2 is X - 1, Y2 is Y,
+	is_safe(X,Y,X2,Y2), %maybe_pit(X2,Y2),
+	X3 is X, Y3 is Y + 1,
+	is_safe(X,Y,X3,Y3), %maybe_pit(X3,Y3),
+	X4 is X, Y4 is Y - 1,
+	is_safe(X,Y,X4,Y4), %maybe_pit(X4,Y4),
+	(found_gold(X,Y);true),
+	write("----"),nl.
+
+is_safe(X1,Y1,X2,Y2) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
+	(not(breeze(X1,Y1)) -> assert(safe(X2,Y2)), assert(safe(X1,Y1)); true).
+
+maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
+	A is X - 1,
+	breeze(A,Y);
+	A is X + 1,
+	breeze(A,Y);
+	A is Y - 1,
+	breeze(X,A);
+	A is Y + 1,
+	breeze(X,A).
+
+found_gold(X,Y) :- % gold is found at X,Y if there is glitter visible on it
+	glitter(X,Y).
