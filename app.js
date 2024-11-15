@@ -35,6 +35,27 @@ draw(X,Y, IMG) :-
   get_by_id(R, D),
   add_class(D, IMG).
 
+draw_robot(X,Y) :-
+  number_chars(X, A), % Convert number to a single atom in list
+  number_chars(Y, B), 
+  nth0(0,A,F),        % And get the atom from the list
+  nth0(0,B,G),        % Done because there is no conversion predicate from number to atom
+  atom_concat(F, G, R),
+  get_by_id(R, D),
+  create('div', H),
+  add_class(H, 'robot'),
+  append_child(D, H).
+
+undraw_robot(X,Y) :-
+  number_chars(X, A),
+  number_chars(Y, B),
+  nth0(0,A,F),
+  nth0(0,B,G),
+  atom_concat(F, G, R),
+  get_by_id(R, D),
+  parent_of(C, D),
+  remove(C).
+
 undraw(X,Y,IMG) :-
   number_chars(X, A),
   number_chars(Y, B),
@@ -55,37 +76,41 @@ remark_control(Key) :-
 
 action(w) :- % up movement
   player(X1,Y1),
-  undraw(X1, Y1, 'robot'),
+  undraw_robot(X1, Y1),
   ((Y1 - 1 < 0) -> Y2 = Y1; Y2 is Y1 - 1),
   retract(player(X1,Y1)),
   assertz(player(X1,Y2)),
-  draw(X1, Y2, 'robot').
+  land(X1,Y2),
+  draw_robot(X1, Y2).
 
 action(s) :- % down movement
   player(X1,Y1),
-  undraw(X1, Y1, 'robot'),
+  undraw_robot(X1, Y1),
   grid_size(G),
   ((Y1 + 1 >= G) -> Y2 = Y1; Y2 is Y1 + 1),
   retract(player(X1,Y1)),
   assertz(player(X1,Y2)),
-  draw(X1, Y2, 'robot').
+  land(X1,Y2),
+  draw_robot(X1, Y2).
 
 action(a) :- % left movement
   player(X1,Y1),
-  undraw(X1, Y1, 'robot'),
+  undraw_robot(X1, Y1),
   ((X1 - 1 < 0) -> X2 = X1; X2 is X1 - 1),
   retract(player(X1,Y1)),
   assertz(player(X2,Y1)),
-  draw(X2, Y1, 'robot').
+  land(X2,Y1),
+  draw_robot(X2, Y1).
 
 action(d) :- % up movement
   player(X1,Y1),
-  undraw(X1, Y1, 'robot'),
+  undraw_robot(X1, Y1),
   grid_size(G),
   ((X1 + 1 >= G) -> X2 = X1; X2 is X1 + 1),
   retract(player(X1,Y1)),
   assertz(player(X2,Y1)),
-  draw(X2, Y1, 'robot').
+  land(X2,Y1),
+  draw_robot(X2, Y1).
 
 % note: query for getting the element E at index I (zero index)
 % nth0(I, [a,b,c], E, _).
@@ -128,13 +153,11 @@ init :-
   assertz(player(0,4)),
   assertz(grid_size(5)),
 	player(X,Y),
-  draw(X,Y,'robot'),
+  draw_robot(X,Y),
 	get_by_tag(body, Body),
 	bind(Body, keyup, _, clear_controls),
 	bind(Body, keydown, Event, (
 		event_property(Event, key, Key),
-    player(X1,Y1),
-    land(X1,Y1),
     action(Key),
 		remark_control(Key),
 		prevent_default(Event)

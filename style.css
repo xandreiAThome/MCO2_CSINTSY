@@ -51,10 +51,12 @@ body h1 {
 }
 
 .robot {
-  background-image: url("assets/robot.jpg");
+  background-image: url("assets/robot.png");
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+  width: 100%;
+  height: 100%;
 }
 
 .breeze {
