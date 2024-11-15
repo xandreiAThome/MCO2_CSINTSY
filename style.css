@@ -17,7 +17,8 @@ main {
 }
 
 body h1 {
-  font-size: 50px;
+  font-size: 70px;
+  text-align: center;
 }
 
 .pixel {
@@ -40,6 +41,13 @@ body h1 {
   border-bottom: 1px solid gray;
   display: grid;
   background-color: white;
+}
+
+.glitter {
+  background-image: url("assets/glitter.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
 }
 
 .robot {
@@ -68,4 +76,38 @@ body h1 {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+}
+
+.control {
+  background-color: #fafafa;
+  display: inline-block;
+  color: #444444;
+  font-weight: bold;
+  font-size: 20px;
+  font-family: monospace, arial;
+  text-align: center;
+  padding: 5px 0px;
+  border-radius: 3px;
+  box-shadow: 0px 5px 0px #dfdfdf;
+  width: 40px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.control.focus {
+  background-color: #eda240;
+  color: #ffffff;
+  box-shadow: 0px 5px 0px #d0831e;
+  opacity: 1;
+}
+
+#control-w {
+  display: block;
+  position: relative;
+  left: 45px;
+}
+
+#control-p {
+  display: block;
+  width: 130px;
 }
