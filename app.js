@@ -1,5 +1,5 @@
 const GRID = 5;
-
+// make child divs to all boxes and just assign robot class
 let program = `
 :- use_module(library(dom)).
 :- use_module(library(lists)).
@@ -131,10 +131,26 @@ land(X,Y) :- % land to X Y
 	% check the grid
 	grid(G),
   check_grid(X,Y,G,E,5),
-  ((E == 1) -> (draw(X,Y,'glitter'), assertz(glitter(X,Y))); true).
+  ((E == 2) -> (draw(X,Y,'breeze'), assertz(breeze(X,Y))); true),
+  ((E == 4) -> (draw(X,Y,'glitter-and-breeze'), assertz(breeze(X,Y)), assertz(glitter(X,Y))); true),
+  ((E == 1) -> (draw(X,Y,'glitter'), assertz(glitter(X,Y))); true),
 
-is_safe(X1,Y1,X2,Y2) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
-	((\+breeze(X1,Y1)) -> assertz(safe(X2,Y2)), assertz(safe(X1,Y1)); true).
+  % determine safety of current and adjacent
+	% spaces depending on what is known
+  (is_safe(X,Y); true).
+	%X2 is X - 1, Y2 is Y,
+	%is_safe(X,Y,X2,Y2).
+	%X3 is X, Y3 is Y + 1,
+	%is_safe(X,Y,X3,Y3), 
+	%X4 is X, Y4 is Y - 1,
+	%is_safe(X,Y,X4,Y4).
+	%(found_gold(X,Y);true)
+
+is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
+  X2 is X1 + 1, Y2 is Y1,
+	(breeze(X1, Y1) -> true;
+  (draw(X2, Y2, 'safe'), draw(X1, Y1, 'safe'), assertz(safe(X1,Y1)), assertz(safe(X2,Y2))
+   ) ).
 
 maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
 	A is X - 1,
@@ -145,14 +161,14 @@ maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to i
 	breeze(X,A);
 	A is Y + 1,
 	breeze(X,A).
-
-found_gold(X,Y) :- % gold is found at X,Y if there is glitter visible on it
-	glitter(X,Y).
   
 init :-
   assertz(player(0,4)),
+  assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(grid_size(5)),
+  assertz(home(0,4)),
 	player(X,Y),
+  draw(X,Y, 'home'),
   draw_robot(X,Y),
 	get_by_tag(body, Body),
 	bind(Body, keyup, _, clear_controls),
