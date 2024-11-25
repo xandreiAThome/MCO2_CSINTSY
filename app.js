@@ -31,6 +31,8 @@ grid(	[0,1,2,0,1,
 	0,2,2,3,2,
 	0,0,0,4,0]).
 
+
+% Make the bg image of a cell in the grid to the specified css class
 draw(X,Y, IMG) :-
   number_chars(X, A), % Convert number to a single atom in list
   number_chars(Y, B), 
@@ -40,6 +42,8 @@ draw(X,Y, IMG) :-
   get_by_id(R, D),
   add_class(D, IMG).
 
+
+% draw the robot on the specified cell in the grid
 draw_robot(X,Y) :-
   number_chars(X, A), % Convert number to a single atom in list
   number_chars(Y, B), 
@@ -49,6 +53,7 @@ draw_robot(X,Y) :-
   atom_concat(R, '-child', P),
   get_by_id(P, D),
   add_class(D, 'robot').
+
 
 undraw_robot(X,Y) :-
   number_chars(X, A),
@@ -69,9 +74,13 @@ undraw(X,Y,IMG) :-
   get_by_id(R, D),
   remove_class(D, IMG).
 
+
+% clears the css style in the keyboard representation
 clear_controls :-
 	findall(X, (get_by_class(control, X), remove_class(X, focus)), _).
 
+
+  % show what button is being pressed
 remark_control(Key) :-
 	clear_controls,
 	atom_concat('control-', Key, Id),
@@ -127,13 +136,16 @@ check_grid(X,Y,LIST,OUT,D) :-
 	I is X + D * Y,
 	nth0(I,LIST,OUT, _).
 
+  % draw glitter or breeze on the cell where they are queried to be true
 show_entities(X,Y) :-
   glitter(X,Y) -> draw(X,Y,'glitter'),
   breeze(X,Y) -> draw(X, Y, 'breeze').
 
-game_end(X) :-
-prop('game', G), apply(G, [0], H).
 
+game_end(X) :-
+  prop('game', G), apply(G, [0], H).
+
+  % checks the safety of the four directions, and checks if current cell is breeze, glitter or pit
 land(X,Y) :- % land to X Y
 	% check the grid
 	grid(G),
@@ -145,11 +157,17 @@ land(X,Y) :- % land to X Y
 
   % determine safety of current and adjacent
 	% spaces depending on what is known
-  (breeze(X,Y) -> true;  draw(X, Y, 'safe'), assertz(safe(X,Y)) ),
-  (is_safe(X,Y)).
+  is_safe(X,Y).
 
 is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
-	(breeze(X1, Y1) -> true; draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1)).
+  % if not breeze then draw safe
+  % I reversed the implication because I could not fix a bug about the negation in tau prolog
+	(breeze(X1, Y1) -> true; draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1),
+  draw_safe_current(X1, Y1)).
+
+  % I seperated the four directions to seperate predicate because there is a bug if all are in a single predicate
+draw_safe_current(X1,Y1) :-
+  draw(X1, Y1, 'safe'), assertz(safe(X1,Y1)).
 
 draw_safe_left(X1,Y1) :-
   X2 is X1 - 1,
@@ -169,6 +187,7 @@ draw_safe_up(X1,Y1) :-
   Y2 is Y1 - 1,
   (Y2 >= 0) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
 
+  % todo, show that a cell is a pit if all four sides are a breeze
 maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
 	A is X - 1,
 	breeze(A,Y);
