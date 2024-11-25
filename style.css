@@ -9,6 +9,27 @@ body {
   background-color: black;
 }
 
+.left-side {
+  display: flex;
+  flex-direction: column;
+}
+
+.gold-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.gold-container > img {
+  height: 32px;
+}
+
+.gold-amount {
+  margin-left: 1rem;
+  font-size: 24px;
+}
+
 main {
   display: flex;
   justify-content: space-evenly;
@@ -112,6 +133,10 @@ body h1 {
   width: 40px;
   margin-bottom: 10px;
   opacity: 0.9;
+}
+
+#controls {
+  margin-top: 4rem;
 }
 
 .control.focus {
