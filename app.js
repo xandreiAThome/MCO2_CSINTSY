@@ -161,9 +161,10 @@ land(X,Y) :- % land to X Y
 
 is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
   % if not breeze then draw safe
-  % I reversed the implication because I could not fix a bug about the negation in tau prolog
-	(breeze(X1, Y1) -> true; draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1),
-  draw_safe_current(X1, Y1)).
+  % I forgot to make the \ be the literal itself because this is a string pala
+  % that was causing the bugs for the negation
+	(\\+(breeze(X1, Y1)) -> draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1),
+  draw_safe_current(X1, Y1); true).
 
   % I seperated the four directions to seperate predicate because there is a bug if all are in a single predicate
 draw_safe_current(X1,Y1) :-
