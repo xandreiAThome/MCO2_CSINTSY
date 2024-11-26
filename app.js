@@ -3,12 +3,27 @@ var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
 };
+
+var home_event_win = function () {
+  alert("You fulfilled the gold requirement, YOU WIN!");
+  location.reload();
+};
+
+var home_event_lose = function () {
+  alert(
+    "You went back home without fulfilling the gold requirement, Game Over!"
+  );
+  location.reload();
+};
+
 // make child divs to all boxes and just assign robot class
 let program = `
 :- use_module(library(dom)).
 :- use_module(library(lists)).
 :- use_module(library(js)).
 :- dynamic(player/2), dynamic(grid_size/1), dynamic(breeze/2), dynamic(glitter/2), dynamic(safe/2), dynamic(home/2).
+:- dynamic(gold/1), dynamic(new_gold/1).  % Declare new_gold as dynamic
+:- dynamic(has_visited_home/1).
 
 % resets all dynamics
 reset :-
@@ -25,11 +40,17 @@ reset :-
 % 2 is breeze
 % 3 is pit
 % 4 is glitter and breeze
+% 6 is home
 grid(	[0,1,2,0,1,
-	1,2,3,2,0,
-	2,3,2,2,0,
-	0,2,2,3,2,
-	0,0,0,4,0]).
+      1,2,3,2,0,
+      2,3,2,2,0,
+      0,2,2,3,2,
+      6,0,0,4,0]).
+
+      
+move_away_from_home(X, Y) :-
+    player(0, 4),  % Home position
+    ((X \\== 0; Y \\== 4) -> assertz(has_visited_home(true)); true).
 
 
 % Make the bg image of a cell in the grid to the specified css class
@@ -94,7 +115,8 @@ action(w) :- % up movement
   retract(player(X1,Y1)),
   assertz(player(X1,Y2)),
   draw_robot(X1, Y2),
-  land(X1,Y2).
+  land(X1,Y2),
+   move_away_from_home(X1, Y2).
 
 action(s) :- % down movement
   player(X1,Y1),
@@ -104,7 +126,8 @@ action(s) :- % down movement
   retract(player(X1,Y1)),
   assertz(player(X1,Y2)),
   draw_robot(X1, Y2),
-  land(X1,Y2).
+  land(X1,Y2),
+   move_away_from_home(X1, Y2).
 
 action(a) :- % left movement
   player(X1,Y1),
@@ -113,7 +136,8 @@ action(a) :- % left movement
   retract(player(X1,Y1)),
   assertz(player(X2,Y1)),
   draw_robot(X2, Y1),
-  land(X2,Y1).
+  land(X2,Y1),
+   move_away_from_home(X2, Y1).
 
 action(d) :- % right movement
   player(X1,Y1),
@@ -123,7 +147,8 @@ action(d) :- % right movement
   retract(player(X1,Y1)),
   assertz(player(X2,Y1)),
   draw_robot(X2, Y1),
-  land(X2,Y1).
+  land(X2,Y1),
+   move_away_from_home(X2, Y1).
 
 % note: query for getting the element E at index I (zero index)
 % nth0(I, [a,b,c], E, _).
@@ -145,19 +170,59 @@ show_entities(X,Y) :-
 game_end(X) :-
   prop('game', G), apply(G, [0], H).
 
+game_home_event(Gold) :-
+    (   Gold > 2
+    ->  prop('home_event_win', G), apply(G, [0], H)  % If gold > 2, trigger win event
+    ;   prop('home_event_lose', G), apply(G, [0], H)  % If gold <= 2, trigger lose event
+    ).
+
+increment_gold_indicator(G) :-
+  get_by_class('gold-amount', D),
+  set_html(D, G).
+
   % checks the safety of the four directions, and checks if current cell is breeze, glitter or pit
 land(X,Y) :- % land to X Y
 	% check the grid
 	grid(G),
   grid_size(GS),
   check_grid(X,Y,G,E,5),
-  ((E == 2) -> (draw(X,Y,'breeze'), assertz(breeze(X,Y))); true),
-  ((E == 4) -> (draw(X,Y,'glitter-and-breeze'), assertz(breeze(X,Y)), assertz(glitter(X,Y))); true),
-  ((E == 1) -> (draw(X,Y,'glitter'), assertz(glitter(X,Y))); true),
-  ((E == 3) -> (draw(X,Y,'pit'), game_end(P)); true),
 
-  % determine safety of current and adjacent
-	% spaces depending on what is known
+   % Handle breeze tiles
+    ((E == 2) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
+
+    % Handle glitter and glitter + breeze tiles
+   
+
+    % Handle pit tiles (Only trigger game end when stepping on pit tiles)
+    ((E == 3) -> (draw(X, Y, 'pit'), game_end(P)); true),
+
+
+  ((E == 1) ->
+        (draw(X, Y, 'glitter'), assertz(glitter(X, Y)),
+         retract(gold(CurrentGold)), % Retrieve current gold value
+         NewGold is CurrentGold + 1, % Increment the gold count
+         assertz(gold(NewGold))); % Update the gold count
+    true),
+
+    ((E == 4) ->
+        (draw(X, Y, 'glitter-and-breeze'), assertz(breeze(X, Y)), assertz(glitter(X, Y)),
+         retract(gold(CurrentGold)), % Retrieve current gold value
+         NewGold is CurrentGold + 1, % Increment the gold count
+         assertz(gold(NewGold))); % Update the gold count
+    true),
+
+    ((E == 6) -> 
+        (draw(X, Y, 'home'),
+        (has_visited_home(true) -> 
+            gold(CurrentGold),  % Fetch the current gold
+            game_home_event(CurrentGold)  % Pass the gold to the event
+        ;   true))  % If not visited before, do nothing
+    ;   true),  % If not the home tile, do nothing
+
+    % Handle clear square (0) tiles
+    ((E == 0) -> 
+        (assertz(has_visited_home(true))); true),  % Mark home as visited
+
   (check_pit_all_direction(X,Y); true),
   is_safe(X, Y).
 
