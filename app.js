@@ -1,4 +1,4 @@
-const GRID = 5;
+const GRID = 5; //Change values when using different maps
 var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
@@ -273,10 +273,10 @@ check_if_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent t
 init :-
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
-  assertz(player(0,4)),
-  assertz(grid_size(5)), % Change 
-  assertz(home(0,4)),    % Values
-  assertz(gold(0)),     % On different maps
+  assertz(player(0,4)),  % Change values when using different maps
+  assertz(grid_size(5)), % Change values when using different maps 
+  assertz(home(0,4)),    % Change values when using different maps
+  assertz(gold(0)),     
 	player(X,Y),
   draw(X,Y, 'home'),
   land(X,Y),
