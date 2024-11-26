@@ -3,12 +3,26 @@ var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
 };
+
+var home_event_win = function () {
+  alert("You fulfilled the gold requirement, YOU WIN!");
+  location.reload();
+};
+
+var home_event_lose= function () {
+  alert("You went back home without fulfilling the gold requirement, Game Over!");
+  location.reload();
+};
+
+
 // make child divs to all boxes and just assign robot class
 let program = `
 :- use_module(library(dom)).
 :- use_module(library(lists)).
 :- use_module(library(js)).
 :- dynamic(player/2), dynamic(grid_size/1), dynamic(breeze/2), dynamic(glitter/2), dynamic(safe/2), dynamic(home/2).
+:- dynamic(gold/2), dynamic(new_gold/2).  % Declare new_gold as dynamic
+:- dynamic(has_visited_home/1).
 
 % resets all dynamics
 reset :-
@@ -17,7 +31,8 @@ reset :-
 	retractall(safe(_, _)),
 	retractall(home(_, _)),
   retractall(player(_,_)),
-  retractall(grid_size(_)).
+  retractall(grid_size(_)),
+  retractall(has_visited_home(_)).
 
 % 5 by 5 grid
 % 0 is clear
@@ -25,14 +40,18 @@ reset :-
 % 2 is breeze
 % 3 is pit
 % 4 is glitter and breeze
+% 6 is home
 grid(	[0,1,2,0,1,
-	1,2,3,2,0,
-	2,3,2,2,0,
-	0,2,2,3,2,
-	0,0,0,4,0]).
+      1,2,3,2,0,
+      2,3,2,2,0,
+      0,2,2,3,2,
+      6,0,0,4,0]).
 
 
-% Make the bg image of a cell in the grid to the specified css class
+move_away_from_home(X, Y) :-
+    player(0, 4),  % Home position
+    ((X \== 0; Y \== 4) -> assertz(has_visited_home(true)); true).
+
 draw(X,Y, IMG) :-
   number_chars(X, A), % Convert number to a single atom in list
   number_chars(Y, B), 
@@ -42,8 +61,6 @@ draw(X,Y, IMG) :-
   get_by_id(R, D),
   add_class(D, IMG).
 
-
-% draw the robot on the specified cell in the grid
 draw_robot(X,Y) :-
   number_chars(X, A), % Convert number to a single atom in list
   number_chars(Y, B), 
@@ -53,7 +70,6 @@ draw_robot(X,Y) :-
   atom_concat(R, '-child', P),
   get_by_id(P, D),
   add_class(D, 'robot').
-
 
 undraw_robot(X,Y) :-
   number_chars(X, A),
@@ -75,12 +91,10 @@ undraw(X,Y,IMG) :-
   remove_class(D, IMG).
 
 
-% clears the css style in the keyboard representation
+
 clear_controls :-
 	findall(X, (get_by_class(control, X), remove_class(X, focus)), _).
 
-
-  % show what button is being pressed
 remark_control(Key) :-
 	clear_controls,
 	atom_concat('control-', Key, Id),
@@ -94,7 +108,8 @@ action(w) :- % up movement
   retract(player(X1,Y1)),
   assertz(player(X1,Y2)),
   draw_robot(X1, Y2),
-  land(X1,Y2).
+  land(X1,Y2),
+  move_away_from_home(X1, Y2).  % Track leaving the home tile
 
 action(s) :- % down movement
   player(X1,Y1),
@@ -104,7 +119,8 @@ action(s) :- % down movement
   retract(player(X1,Y1)),
   assertz(player(X1,Y2)),
   draw_robot(X1, Y2),
-  land(X1,Y2).
+  land(X1,Y2),
+  move_away_from_home(X1, Y2).
 
 action(a) :- % left movement
   player(X1,Y1),
@@ -113,9 +129,10 @@ action(a) :- % left movement
   retract(player(X1,Y1)),
   assertz(player(X2,Y1)),
   draw_robot(X2, Y1),
-  land(X2,Y1).
+  land(X2,Y1),
+  move_away_from_home(X1, Y2).
 
-action(d) :- % right movement
+action(d) :- % up movement
   player(X1,Y1),
   undraw_robot(X1, Y1),
   grid_size(G),
@@ -123,7 +140,8 @@ action(d) :- % right movement
   retract(player(X1,Y1)),
   assertz(player(X2,Y1)),
   draw_robot(X2, Y1),
-  land(X2,Y1).
+  land(X2,Y1),
+  move_away_from_home(X1, Y2).
 
 % note: query for getting the element E at index I (zero index)
 % nth0(I, [a,b,c], E, _).
@@ -136,41 +154,76 @@ check_grid(X,Y,LIST,OUT,D) :-
 	I is X + D * Y,
 	nth0(I,LIST,OUT, _).
 
-  % draw glitter or breeze on the cell where they are queried to be true
 show_entities(X,Y) :-
   glitter(X,Y) -> draw(X,Y,'glitter'),
   breeze(X,Y) -> draw(X, Y, 'breeze').
 
-
 game_end(X) :-
-  prop('game', G), apply(G, [0], H).
+prop('game', G), apply(G, [0], H).
 
-  % checks the safety of the four directions, and checks if current cell is breeze, glitter or pit
-land(X,Y) :- % land to X Y
-	% check the grid
-	grid(G),
-  grid_size(GS),
-  check_grid(X,Y,G,E,5),
-  ((E == 2) -> (draw(X,Y,'breeze'), assertz(breeze(X,Y))); true),
-  ((E == 4) -> (draw(X,Y,'glitter-and-breeze'), assertz(breeze(X,Y)), assertz(glitter(X,Y))); true),
-  ((E == 1) -> (draw(X,Y,'glitter'), assertz(glitter(X,Y))); true),
-  ((E == 3) -> (draw(X,Y,'pit'), game_end(P)); true),
+game_home_event(Gold) :-
+    (   Gold > 2
+    ->  prop('home_event_win', G), apply(G, [0], H)  % If gold > 2, trigger win event
+    ;   prop('home_event_lose', G), apply(G, [0], H)  % If gold <= 2, trigger lose event
+    ).
+
+land(X, Y) :- % Land to X Y
+    % Check the grid
+    grid(G),
+    check_grid(X, Y, G, E, 5),
+
+    % Handle breeze tiles
+    ((E == 2) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
+
+    % Handle glitter and glitter + breeze tiles
+   
+
+    % Handle pit tiles (Only trigger game end when stepping on pit tiles)
+    ((E == 3) -> (draw(X, Y, 'pit'), game_end(P)); true),
+
+
+  ((E == 1) ->
+        (draw(X, Y, 'glitter'), assertz(glitter(X, Y)),
+         retract(gold(CurrentGold)), % Retrieve current gold value
+         NewGold is CurrentGold + 1, % Increment the gold count
+         assertz(gold(NewGold))); % Update the gold count
+    true),
+
+    ((E == 4) ->
+        (draw(X, Y, 'glitter-and-breeze'), assertz(breeze(X, Y)), assertz(glitter(X, Y)),
+         retract(gold(CurrentGold)), % Retrieve current gold value
+         NewGold is CurrentGold + 1, % Increment the gold count
+         assertz(gold(NewGold))); % Update the gold count
+    true),
+
+    ((E == 6) -> 
+        (draw(X, Y, 'home'),
+        (has_visited_home(true) -> 
+            gold(CurrentGold),  % Fetch the current gold
+            game_home_event(CurrentGold)  % Pass the gold to the event
+        ;   true))  % If not visited before, do nothing
+    ;   true),  % If not the home tile, do nothing
+
+    % Handle clear square (0) tiles
+    ((E == 0) -> 
+        (assertz(has_visited_home(true))); true),  % Mark home as visited
+
+    % Determine safety of current and adjacent spaces
+    (breeze(X, Y) -> true; (draw(X, Y, 'safe'), assertz(safe(X, Y)))),
+
+    is_safe(X, Y).
+
+
+
+
 
   % determine safety of current and adjacent
 	% spaces depending on what is known
-  (check_pit_all_direction(X,Y); true),
-  is_safe(X, Y).
+  (breeze(X,Y) -> true;  draw(X, Y, 'safe'), assertz(safe(X,Y)) ),
+  (is_safe(X,Y)).
 
 is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
-  % if not breeze then draw safe
-  % I forgot to make the \ be the literal itself because this is a string pala
-  % that was causing the bugs for the negation
-	(\\+(breeze(X1, Y1)) -> draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1),
-  draw_safe_current(X1, Y1); true).
-
-  % I seperated the four directions to seperate predicate because there is a bug if all are in a single predicate
-draw_safe_current(X1,Y1) :-
-  draw(X1, Y1, 'safe'), assertz(safe(X1,Y1)).
+	(breeze(X1, Y1) -> true; draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1)).
 
 draw_safe_left(X1,Y1) :-
   X2 is X1 - 1,
@@ -190,25 +243,23 @@ draw_safe_up(X1,Y1) :-
   Y2 is Y1 - 1,
   (Y2 >= 0) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
 
-check_pit_all_direction(X, Y) :-
-  UP is Y-1, DOWN is Y+1, LEFT is X-1, RIGHT is X+1,
-  (check_if_pit(X,UP);true),
-  (check_if_pit(X,DOWN);true),
-  (check_if_pit(RIGHT,Y);true),
-  (check_if_pit(LEFT,Y)).
-
-
-  % todo, show that a cell is a pit if all four sides are a breeze
-check_if_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
-  grid_size(G),
-  UP is Y-1, DOWN is Y+1, LEFT is X-1, RIGHT is X+1,
-  (breeze(X, DOWN), breeze(X, UP), breeze(LEFT, Y), breeze(RIGHT, Y)) -> draw(X,Y, 'pit').
+maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
+	A is X - 1,
+	breeze(A,Y);
+	A is X + 1,
+	breeze(A,Y);
+	A is Y - 1,
+	breeze(X,A);
+	A is Y + 1,
+	breeze(X,A).
   
 init :-
   assertz(player(0,4)),
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(grid_size(5)),
   assertz(home(0,4)),
+  assertz(has_visited_home(false)),  % Set the flag to false initially
+  assertz(gold(0)),
 	player(X,Y),
   draw(X,Y, 'home'),
   land(X,Y),
@@ -222,6 +273,10 @@ init :-
 		prevent_default(Event)
 	)).
 `;
+
+
+
+
 /*
     (Key=:=w -> Y2 is Y1-1; Y2 = Y1; true),
     (Key=:=d -> X2 is X1+1; X2 = X1; true),
