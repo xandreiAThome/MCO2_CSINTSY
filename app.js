@@ -115,7 +115,7 @@ action(a) :- % left movement
   draw_robot(X2, Y1),
   land(X2,Y1).
 
-action(d) :- % up movement
+action(d) :- % right movement
   player(X1,Y1),
   undraw_robot(X1, Y1),
   grid_size(G),
@@ -149,6 +149,7 @@ game_end(X) :-
 land(X,Y) :- % land to X Y
 	% check the grid
 	grid(G),
+  grid_size(GS),
   check_grid(X,Y,G,E,5),
   ((E == 2) -> (draw(X,Y,'breeze'), assertz(breeze(X,Y))); true),
   ((E == 4) -> (draw(X,Y,'glitter-and-breeze'), assertz(breeze(X,Y)), assertz(glitter(X,Y))); true),
@@ -157,7 +158,8 @@ land(X,Y) :- % land to X Y
 
   % determine safety of current and adjacent
 	% spaces depending on what is known
-  is_safe(X,Y).
+  (check_pit_all_direction(X,Y); true),
+  is_safe(X, Y).
 
 is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
   % if not breeze then draw safe
@@ -188,16 +190,19 @@ draw_safe_up(X1,Y1) :-
   Y2 is Y1 - 1,
   (Y2 >= 0) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
 
+check_pit_all_direction(X, Y) :-
+  UP is Y-1, DOWN is Y+1, LEFT is X-1, RIGHT is X+1,
+  (check_if_pit(X,UP);true),
+  (check_if_pit(X,DOWN);true),
+  (check_if_pit(RIGHT,Y);true),
+  (check_if_pit(LEFT,Y)).
+
+
   % todo, show that a cell is a pit if all four sides are a breeze
-maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
-	A is X - 1,
-	breeze(A,Y);
-	A is X + 1,
-	breeze(A,Y);
-	A is Y - 1,
-	breeze(X,A);
-	A is Y + 1,
-	breeze(X,A).
+check_if_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
+  grid_size(G),
+  UP is Y-1, DOWN is Y+1, LEFT is X-1, RIGHT is X+1,
+  (breeze(X, DOWN), breeze(X, UP), breeze(LEFT, Y), breeze(RIGHT, Y)) -> draw(X,Y, 'pit').
   
 init :-
   assertz(player(0,4)),
