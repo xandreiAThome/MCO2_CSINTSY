@@ -1,4 +1,4 @@
-const GRID = 5; //Change values when using different maps
+const GRID = 4; //Change values when using different maps
 var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
@@ -39,11 +39,11 @@ reset :-
 % 3 is pit
 % 4 is glitter and breeze
 % 6 is home
-grid(	[0,1,2,0,1,
-      1,2,3,2,0,
-      2,3,2,2,0,
-      0,2,2,3,2,
-      6,0,0,4,0]).
+grid(	[
+      1,2,3,2,
+      1,2,3,2,
+      0,2,2,4,
+      0,0,6,0]).
 
       
 move_away_from_home(X, Y) :-
@@ -183,7 +183,7 @@ land(X,Y) :- % land to X Y
 	% check the grid
 	grid(G),
   grid_size(GS),
-  check_grid(X,Y,G,E,5),
+  check_grid(X,Y,G,E,GS),
 
    % Handle breeze tiles
     ((E == 2) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
@@ -273,14 +273,14 @@ check_if_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent t
 init :-
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
-  assertz(player(0,4)),  % Change values when using different maps
-  assertz(grid_size(5)), % Change values when using different maps 
-  assertz(home(0,4)),    % Change values when using different maps
+  assertz(player(2,3)),  % Change values when using different maps
+  assertz(grid_size(4)), % Change values when using different maps 
+  assertz(home(2,3)),    % Change values when using different maps
   assertz(gold(0)),     
 	player(X,Y),
   draw(X,Y, 'home'),
-  land(X,Y),
   draw_robot(X,Y),
+  land(X,Y),
 	get_by_tag(body, Body),
 	bind(Body, keyup, _, clear_controls),
 	bind(Body, keydown, Event, (
