@@ -1,5 +1,7 @@
 # MCO2_CSINTSY
 
+## Art used for the project
+
 ### https://clipart-library.com/clipart/pit-clipart_5.html
 
 ### https://clipart-library.com/clipart/5TRrorGLc.htm
