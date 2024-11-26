@@ -10,9 +10,7 @@ var home_event_win = function () {
 };
 
 var home_event_lose = function () {
-  alert(
-    "You went back home without fulfilling the gold requirement, Game Over!"
-  );
+  alert("You went back home without with less than 2 gold, Game Over!");
   location.reload();
 };
 
@@ -49,8 +47,8 @@ grid(	[0,1,2,0,1,
 
       
 move_away_from_home(X, Y) :-
-    player(0, 4),  % Home position
-    ((X \\== 0; Y \\== 4) -> assertz(has_visited_home(true)); true).
+    home(X1,Y1),
+    ((X \\== X1; Y \\== Y1) -> assertz(has_visited_home(true)); true).
 
 
 % Make the bg image of a cell in the grid to the specified css class
@@ -197,17 +195,20 @@ land(X,Y) :- % land to X Y
     ((E == 3) -> (draw(X, Y, 'pit'), game_end(P)); true),
 
 
-  ((E == 1) ->
+  ((E == 1, \\+glitter(X, Y)) ->
         (draw(X, Y, 'glitter'), assertz(glitter(X, Y)),
          retract(gold(CurrentGold)), % Retrieve current gold value
          NewGold is CurrentGold + 1, % Increment the gold count
-         assertz(gold(NewGold))); % Update the gold count
+         increment_gold_indicator(NewGold),
+         assertz(gold(NewGold))
+         ); % Update the gold count
     true),
 
-    ((E == 4) ->
+    ((E == 4, \\+glitter(X, Y)) ->
         (draw(X, Y, 'glitter-and-breeze'), assertz(breeze(X, Y)), assertz(glitter(X, Y)),
          retract(gold(CurrentGold)), % Retrieve current gold value
          NewGold is CurrentGold + 1, % Increment the gold count
+         increment_gold_indicator(NewGold),
          assertz(gold(NewGold))); % Update the gold count
     true),
 
@@ -270,10 +271,12 @@ check_if_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent t
   (breeze(X, DOWN), breeze(X, UP), breeze(LEFT, Y), breeze(RIGHT, Y)) -> draw(X,Y, 'pit').
   
 init :-
-  assertz(player(0,4)),
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
-  assertz(grid_size(5)),
-  assertz(home(0,4)),
+  assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
+  assertz(player(0,4)),
+  assertz(grid_size(5)), % Change 
+  assertz(home(0,4)),    % Values
+  assertz(gold(0)),     % On different maps
 	player(X,Y),
   draw(X,Y, 'home'),
   land(X,Y),

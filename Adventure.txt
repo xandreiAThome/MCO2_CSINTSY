@@ -130,3 +130,13 @@ maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to i
 
 found_gold(X,Y) :- % gold is found at X,Y if there is glitter visible on it
 	glitter(X,Y).
+
+	grab_gold(X, Y) :-
+  (\\+glitter(X, Y)) -> (
+    retract(gold(CurrentGold)), % Retrieve current gold value
+    NewGold is CurrentGold + 1, % Increment the gold count
+    assertz(gold(NewGold))),    % Update the gold count
+    assertz(glitter(X, Y)),
+    %increment_gold_indicator(NewGold); 
+    %true
+  ).
