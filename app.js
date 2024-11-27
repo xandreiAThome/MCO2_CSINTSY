@@ -1,4 +1,4 @@
-const GRID = 6; //Change values when using different maps
+const GRID = 5; //Change values when using different maps
 var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
@@ -39,12 +39,11 @@ reset :-
 % 3 is pit
 % 4 is glitter and breeze
 % 6 is home
-grid([0, 1, 2, 0, 2, 3,
-      1, 2, 3, 4, 0, 4,
-      0, 0, 2, 0, 0, 2,
-      6, 0, 0, 2, 2, 3,
-      0, 0, 2, 3, 2, 2,
-      0, 1, 0, 2, 0, 0]).
+grid(	[0,1,2,0,1,
+	1,2,3,2,0,
+	2,3,2,2,0,
+	0,2,2,3,2,
+	6,0,0,4,0]).
 
       
 move_away_from_home(X, Y) :-
@@ -293,7 +292,7 @@ possible_pit(X, Y, BX, BY) :-
     adjacent(BX, BY, X, Y),
     \\+ safe(X, Y).
 
-% Determine definite pit location given a breeze tile
+% Determine definite pit location given a breeze location
 infer_definite_pit(BX, BY) :-
     findall((X, Y), possible_pit(X, Y, BX, BY), Pits),
     length(Pits, L),
@@ -307,9 +306,9 @@ init :-
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(safe(-2,-2)),% placeholder so that getting term doesnt result in existence error
-  assertz(player(0,3)),  % Change values when using different maps
-  assertz(grid_size(6)), % Change values when using different maps 
-  assertz(home(0,3)),    % Change values when using different maps
+  assertz(player(0,4)),  % Change values when using different maps
+  assertz(grid_size(5)), % Change values when using different maps 
+  assertz(home(0,4)),    % Change values when using different maps
   assertz(gold(0)),
 	player(X,Y),
   draw(X,Y, 'home'),
