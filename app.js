@@ -43,7 +43,7 @@ grid(	[0,1,2,0,1,
 	1,2,3,2,0,
 	2,3,2,2,0,
 	0,2,2,3,2,
-	0,0,0,4,0]).
+	6,0,0,4,0]).
 
       
 move_away_from_home(X, Y) :-
@@ -198,6 +198,11 @@ land(X,Y) :- % land to X Y
          ); % Update the gold count
     true),
 
+  % Handle clear square (0) tiles
+  ((E == 0) -> 
+    (assertz(has_visited_home(true))); true),  % Mark home as visited
+
+  % handle return home
   ((E == 6) -> 
       (draw(X, Y, 'home'),
       (has_visited_home(true) -> 
@@ -205,10 +210,6 @@ land(X,Y) :- % land to X Y
           game_home_event(CurrentGold)  % Pass the gold to the event
       ;   true))  % If not visited before, do nothing
   ;   true),  % If not the home tile, do nothing
-
-  % Handle clear square (0) tiles
-  ((E == 0) -> 
-      (assertz(has_visited_home(true))); true),  % Mark home as visited
 
   draw_safe_current(X, Y),
 
@@ -223,6 +224,7 @@ land(X,Y) :- % land to X Y
         increment_gold_indicator(NewGold),
         assertz(gold(NewGold))); % Update the gold count
   true),
+
   % get all breezes predicate and iterate over them to see if agent has enough information to deduce pit location
   is_safe(X, Y),
   findall((XP,YP), breeze(XP,YP), Res),
