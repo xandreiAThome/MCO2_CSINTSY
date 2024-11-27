@@ -1,4 +1,4 @@
-const GRID = 5; //Change values when using different maps
+const GRID = 4; //Change values when using different maps
 var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
@@ -39,11 +39,10 @@ reset :-
 % 3 is pit
 % 4 is glitter and breeze
 % 6 is home
-grid(	[0,1,2,0,1,
-	1,2,3,2,0,
-	2,3,2,2,0,
-	0,2,2,3,2,
-	6,0,0,4,0]).
+grid([0, 1, 2, 0,
+      1, 2, 3, 4,
+      0, 0, 2, 0,
+      6, 0, 0, 0]).
 
       
 move_away_from_home(X, Y) :-
@@ -169,9 +168,9 @@ game_end(X) :-
   prop('game', G), apply(G, [0], H).
 
 game_home_event(Gold) :-
-    (   Gold > 2
-    ->  prop('home_event_win', G), apply(G, [0], H)  % If gold > 2, trigger win event
-    ;   prop('home_event_lose', G), apply(G, [0], H)  % If gold <= 2, trigger lose event
+    (   Gold >= 2
+    ->  prop('home_event_win', G), apply(G, [0], H)  % If gold >= 2, trigger win event
+    ;   prop('home_event_lose', G), apply(G, [0], H)  % If gold < 2, trigger lose event
     ).
 
 increment_gold_indicator(G) :-
@@ -225,8 +224,8 @@ land(X,Y) :- % land to X Y
         assertz(gold(NewGold))); % Update the gold count
   true),
 
-  % get all breezes predicate and iterate over them to see if agent has enough information to deduce pit location
   is_safe(X, Y),
+  % get all breezes predicate and iterate over them to see if agent has enough information to deduce pit location
   findall((XP,YP), breeze(XP,YP), Res),
   sort(Res, UNQ),
   check_all_breeze_for_pit(UNQ).
@@ -243,7 +242,7 @@ is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
   % if not breeze then draw safe
   % I forgot to make the \ be the literal itself because this is a string pala
   % that was causing the bugs for the negation
-	(\\+(breeze(X1, Y1)) -> draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1)).
+	(\\+(breeze(X1, Y1)) -> draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1)); true.
 
   % I seperated the four directions to seperate predicate because there is a bug if all are in a single predicate
 draw_safe_current(X1,Y1) :-
@@ -304,9 +303,9 @@ infer_definite_pit(BX, BY) :-
 init :-
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
-  assertz(player(0,4)),  % Change values when using different maps
-  assertz(grid_size(5)), % Change values when using different maps 
-  assertz(home(0,4)),    % Change values when using different maps
+  assertz(player(0,3)),  % Change values when using different maps
+  assertz(grid_size(4)), % Change values when using different maps 
+  assertz(home(0,3)),    % Change values when using different maps
   assertz(gold(0)),
 	player(X,Y),
   draw(X,Y, 'home'),
