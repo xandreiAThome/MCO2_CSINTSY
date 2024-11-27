@@ -1,4 +1,4 @@
-const GRID = 4; //Change values when using different maps
+const GRID = 5; //Change values when using different maps
 var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
@@ -39,11 +39,11 @@ reset :-
 % 3 is pit
 % 4 is glitter and breeze
 % 6 is home
-grid(	[
-      1,2,3,2,
-      1,2,3,2,
-      0,2,2,4,
-      0,0,6,0]).
+grid(	[0,1,2,0,1,
+	1,2,3,2,0,
+	2,3,2,2,0,
+	0,2,2,3,2,
+	0,0,0,4,0]).
 
       
 move_away_from_home(X, Y) :-
@@ -184,17 +184,11 @@ land(X,Y) :- % land to X Y
 	grid(G),
   grid_size(GS),
   check_grid(X,Y,G,E,GS),
+    
+  % Handle pit tiles (Only trigger game end when stepping on pit tiles)
+  ((E == 3) -> (draw(X, Y, 'pit'), game_end(P)); true),
 
-   % Handle breeze tiles
-    ((E == 2) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
-
-    % Handle glitter and glitter + breeze tiles
-   
-
-    % Handle pit tiles (Only trigger game end when stepping on pit tiles)
-    ((E == 3) -> (draw(X, Y, 'pit'), game_end(P)); true),
-
-
+   % Handle glitter
   ((E == 1, \\+glitter(X, Y)) ->
         (draw(X, Y, 'glitter'), assertz(glitter(X, Y)),
          retract(gold(CurrentGold)), % Retrieve current gold value
@@ -204,35 +198,50 @@ land(X,Y) :- % land to X Y
          ); % Update the gold count
     true),
 
-    ((E == 4, \\+glitter(X, Y)) ->
-        (draw(X, Y, 'glitter-and-breeze'), assertz(breeze(X, Y)), assertz(glitter(X, Y)),
-         retract(gold(CurrentGold)), % Retrieve current gold value
-         NewGold is CurrentGold + 1, % Increment the gold count
-         increment_gold_indicator(NewGold),
-         assertz(gold(NewGold))); % Update the gold count
-    true),
+  ((E == 6) -> 
+      (draw(X, Y, 'home'),
+      (has_visited_home(true) -> 
+          gold(CurrentGold),  % Fetch the current gold
+          game_home_event(CurrentGold)  % Pass the gold to the event
+      ;   true))  % If not visited before, do nothing
+  ;   true),  % If not the home tile, do nothing
 
-    ((E == 6) -> 
-        (draw(X, Y, 'home'),
-        (has_visited_home(true) -> 
-            gold(CurrentGold),  % Fetch the current gold
-            game_home_event(CurrentGold)  % Pass the gold to the event
-        ;   true))  % If not visited before, do nothing
-    ;   true),  % If not the home tile, do nothing
+  % Handle clear square (0) tiles
+  ((E == 0) -> 
+      (assertz(has_visited_home(true))); true),  % Mark home as visited
 
-    % Handle clear square (0) tiles
-    ((E == 0) -> 
-        (assertz(has_visited_home(true))); true),  % Mark home as visited
+  draw_safe_current(X, Y),
 
-  (check_pit_all_direction(X,Y); true),
-  is_safe(X, Y).
+  % Handle breeze tiles
+    ((E == 2) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
+
+    % Handle glitter+breeze
+  ((E == 4, \\+glitter(X, Y)) ->
+      (draw(X, Y, 'glitter-and-breeze'), assertz(breeze(X, Y)), assertz(glitter(X, Y)),
+        retract(gold(CurrentGold)), % Retrieve current gold value
+        NewGold is CurrentGold + 1, % Increment the gold count
+        increment_gold_indicator(NewGold),
+        assertz(gold(NewGold))); % Update the gold count
+  true),
+  % get all breezes predicate and iterate over them to see if agent has enough information to deduce pit location
+  is_safe(X, Y),
+  findall((XP,YP), breeze(XP,YP), Res),
+  sort(Res, UNQ),
+  check_all_breeze_for_pit(UNQ).
+
+
+check_all_breeze_for_pit([]).
+
+check_all_breeze_for_pit([(X, Y)|T]) :-
+  infer_definite_pit(X, Y),
+  check_all_breeze_for_pit(T).
+
 
 is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
   % if not breeze then draw safe
   % I forgot to make the \ be the literal itself because this is a string pala
   % that was causing the bugs for the negation
-	(\\+(breeze(X1, Y1)) -> draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1),
-  draw_safe_current(X1, Y1); true).
+	(\\+(breeze(X1, Y1)) -> draw_safe_left(X1,Y1), draw_safe_right(X1,Y1), draw_safe_down(X1,Y1), draw_safe_up(X1,Y1)).
 
   % I seperated the four directions to seperate predicate because there is a bug if all are in a single predicate
 draw_safe_current(X1,Y1) :-
@@ -256,27 +265,47 @@ draw_safe_up(X1,Y1) :-
   Y2 is Y1 - 1,
   (Y2 >= 0) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
 
-check_pit_all_direction(X, Y) :-
-  UP is Y-1, DOWN is Y+1, LEFT is X-1, RIGHT is X+1,
-  (check_if_pit(X,UP);true),
-  (check_if_pit(X,DOWN);true),
-  (check_if_pit(RIGHT,Y);true),
-  (check_if_pit(LEFT,Y)).
+in_bounds(X, Y) :-
+    grid_size(Max),
+    X >= 0, X < Max,
+    Y >= 0, Y < Max.
 
+% Rules for adjacency, ensuring that the cells are within bounds
+adjacent(X, Y, X1, Y) :-
+    X1 is X + 1,
+    in_bounds(X1, Y).
+adjacent(X, Y, X1, Y) :-
+    X1 is X - 1,
+    in_bounds(X1, Y).
+adjacent(X, Y, X, Y1) :-
+    Y1 is Y + 1,
+    in_bounds(X, Y1).
+adjacent(X, Y, X, Y1) :-
+    Y1 is Y - 1,
+    in_bounds(X, Y1).
 
-  % todo, show that a cell is a pit if all four sides are a breeze
-check_if_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to it and not safe
-  grid_size(G),
-  UP is Y-1, DOWN is Y+1, LEFT is X-1, RIGHT is X+1,
-  (breeze(X, DOWN), breeze(X, UP), breeze(LEFT, Y), breeze(RIGHT, Y)) -> draw(X,Y, 'pit').
+% Determine possible pit locations
+possible_pit(X, Y, BX, BY) :-
+    adjacent(BX, BY, X, Y),
+    \\+ safe(X, Y).
+
+% Determine definite pit location
+infer_definite_pit(BX, BY) :-
+    findall((X, Y), possible_pit(X, Y, BX, BY), Pits),
+    length(Pits, L),
+    L =:= 1,
+    Pits = [(X, Y)],
+    assertz(pit(X, Y)),
+    draw(X, Y, 'pit'); true.
+
   
 init :-
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
-  assertz(player(2,3)),  % Change values when using different maps
-  assertz(grid_size(4)), % Change values when using different maps 
-  assertz(home(2,3)),    % Change values when using different maps
-  assertz(gold(0)),     
+  assertz(player(0,4)),  % Change values when using different maps
+  assertz(grid_size(5)), % Change values when using different maps 
+  assertz(home(0,4)),    % Change values when using different maps
+  assertz(gold(0)),
 	player(X,Y),
   draw(X,Y, 'home'),
   draw_robot(X,Y),
@@ -285,7 +314,7 @@ init :-
 	bind(Body, keyup, _, clear_controls),
 	bind(Body, keydown, Event, (
 		event_property(Event, key, Key),
-    action(Key),
+    (action(Key); true),
 		remark_control(Key),
 		prevent_default(Event)
 	)).

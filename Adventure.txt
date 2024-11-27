@@ -131,4 +131,27 @@ maybe_pit(X,Y) :- % there may be a pit at X,Y if there is a breeze adjacent to i
 found_gold(X,Y) :- % gold is found at X,Y if there is glitter visible on it
 	glitter(X,Y).
 
+% Define the percepts
+breeze(1, 2).
+breeze(2, 1).
+
+% Adjacency relations
+adjacent(X1, Y1, X2, Y2) :-
+    (X2 is X1 + 1, Y2 is Y1);
+    (X2 is X1 - 1, Y2 is Y1);
+    (X2 is X1, Y2 is Y1 + 1);
+    (X2 is X1, Y2 is Y1 - 1).
+
+% Pit inference rule
+possible_pit(X, Y) :-
+    breeze(X1, Y1),
+    adjacent(X1, Y1, X, Y).
+
+% Check if a cell is definitely a pit
+pit(X, Y) :-
+    % Ensure that the cell is a possible pit for all breeze percepts
+    forall(breeze(BX, BY), adjacent(BX, BY, X, Y)),
+    % Ensure no breeze around cells that are not adjacent to any pit
+    forall((breeze(BX, BY), adjacent(BX, BY, AX, AY), \+ breeze(AX, AY)), \+ pit(AX, AY)).
+
 	
