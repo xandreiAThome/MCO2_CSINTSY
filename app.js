@@ -1,4 +1,4 @@
-const GRID = 4; //Change values when using different maps
+const GRID = 6; //Change values when using different maps
 var game = function () {
   alert("You stepped on a pit, Game Over!");
   location.reload();
@@ -20,7 +20,7 @@ let program = `
 :- use_module(library(lists)).
 :- use_module(library(js)).
 :- dynamic(player/2), dynamic(grid_size/1), dynamic(breeze/2), dynamic(glitter/2), dynamic(safe/2), dynamic(home/2).
-:- dynamic(gold/1), dynamic(new_gold/1).  % Declare new_gold as dynamic
+:- dynamic(gold/1), dynamic(new_gold/1), dynamic(pit/2).  % Declare new_gold as dynamic
 :- dynamic(has_visited_home/1).
 
 % resets all dynamics
@@ -39,10 +39,12 @@ reset :-
 % 3 is pit
 % 4 is glitter and breeze
 % 6 is home
-grid([0, 1, 2, 0,
-      1, 2, 3, 4,
-      0, 0, 2, 0,
-      6, 0, 0, 0]).
+grid([0, 1, 2, 0, 2, 3,
+      1, 2, 3, 4, 0, 4,
+      0, 0, 2, 0, 0, 2,
+      6, 0, 0, 2, 2, 3,
+      0, 0, 2, 3, 2, 2,
+      0, 1, 0, 2, 0, 0]).
 
       
 move_away_from_home(X, Y) :-
@@ -198,7 +200,7 @@ land(X,Y) :- % land to X Y
     true),
 
   % Handle clear square (0) tiles
-  ((E == 0) -> 
+  ((E == 0, \\+has_visited_home(true)) -> 
     (assertz(has_visited_home(true))); true),  % Mark home as visited
 
   % handle return home
@@ -213,10 +215,10 @@ land(X,Y) :- % land to X Y
   draw_safe_current(X, Y),
 
   % Handle breeze tiles
-    ((E == 2) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
+    ((E == 2, \\+breeze(X, Y)) -> (draw(X, Y, 'breeze'), assertz(breeze(X, Y))); true),
 
     % Handle glitter+breeze
-  ((E == 4, \\+glitter(X, Y)) ->
+  ((E == 4, \\+glitter(X, Y), \\+breeze(X,Y)) ->
       (draw(X, Y, 'glitter-and-breeze'), assertz(breeze(X, Y)), assertz(glitter(X, Y)),
         retract(gold(CurrentGold)), % Retrieve current gold value
         NewGold is CurrentGold + 1, % Increment the gold count
@@ -226,15 +228,16 @@ land(X,Y) :- % land to X Y
 
   is_safe(X, Y),
   % get all breezes predicate and iterate over them to see if agent has enough information to deduce pit location
-  findall((XP,YP), breeze(XP,YP), Res),
-  sort(Res, UNQ),
-  check_all_breeze_for_pit(UNQ).
+    (findall((XP,YP), breeze(XP,YP), Res);true),
+    sort(Res, UNQ),
+    check_all_breeze_for_pit(UNQ).
 
 
 check_all_breeze_for_pit([]).
 
 check_all_breeze_for_pit([(X, Y)|T]) :-
   infer_definite_pit(X, Y),
+  write((X, Y)),
   check_all_breeze_for_pit(T).
 
 
@@ -246,25 +249,25 @@ is_safe(X1,Y1) :- % space at X2, Y2 is safe if there is no breeze at X1, Y1
 
   % I seperated the four directions to seperate predicate because there is a bug if all are in a single predicate
 draw_safe_current(X1,Y1) :-
-  draw(X1, Y1, 'safe'), assertz(safe(X1,Y1)).
+  (\\+safe(X1,Y1) -> draw(X1, Y1, 'safe'), assertz(safe(X1,Y1)); true).
 
 draw_safe_left(X1,Y1) :-
   X2 is X1 - 1,
-  (X2 >= 0) -> (draw(X2, Y1, 'safe'), assertz(safe(X2,Y1))); true.
+  (X2 >= 0, \\+safe(X2,Y1)) -> (draw(X2, Y1, 'safe'), assertz(safe(X2,Y1))); true.
 
 draw_safe_right(X1,Y1) :-
   X2 is X1 + 1,
   grid_size(G),
-  (X2 < G) -> (draw(X2, Y1, 'safe'), assertz(safe(X2,Y1))); true.
+  (X2 < G, \\+safe(X2, Y1)) -> (draw(X2, Y1, 'safe'), assertz(safe(X2,Y1))); true.
 
 draw_safe_down(X1,Y1) :-
   Y2 is Y1 + 1,
   grid_size(G),
-  (Y2 < G) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
+  (Y2 < G, \\+safe(X1,Y2)) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
 
 draw_safe_up(X1,Y1) :-
   Y2 is Y1 - 1,
-  (Y2 >= 0) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
+  (Y2 >= 0, \\+safe(X1,Y2)) -> (draw(X1, Y2, 'safe'), assertz(safe(X1,Y2))); true.
 
 in_bounds(X, Y) :-
     grid_size(Max),
@@ -290,7 +293,7 @@ possible_pit(X, Y, BX, BY) :-
     adjacent(BX, BY, X, Y),
     \\+ safe(X, Y).
 
-% Determine definite pit location
+% Determine definite pit location given a breeze tile
 infer_definite_pit(BX, BY) :-
     findall((X, Y), possible_pit(X, Y, BX, BY), Pits),
     length(Pits, L),
@@ -303,8 +306,9 @@ infer_definite_pit(BX, BY) :-
 init :-
   assertz(breeze(-2,-2)), % placeholder so that getting term doesnt result in existence error
   assertz(glitter(-2,-2)), % placeholder so that getting term doesnt result in existence error
+  assertz(safe(-2,-2)),% placeholder so that getting term doesnt result in existence error
   assertz(player(0,3)),  % Change values when using different maps
-  assertz(grid_size(4)), % Change values when using different maps 
+  assertz(grid_size(6)), % Change values when using different maps 
   assertz(home(0,3)),    % Change values when using different maps
   assertz(gold(0)),
 	player(X,Y),
